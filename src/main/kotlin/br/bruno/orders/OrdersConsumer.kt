@@ -37,7 +37,7 @@ fun main(args: Array<String>) {
 private fun createConsumer(brokers: String): Consumer<String, Order> {
     val props = Properties()
     props["bootstrap.servers"] = brokers
-    props["group.id"] = "order-processor-1" // CONSUMER GROUP! up to 4 in parallel (see --partitions topic)
+    props["group.id"] = "order-processor" // CONSUMER GROUP! up to 4 in parallel (see --partitions topic)
     props["key.deserializer"] = StringDeserializer::class.java
     props["value.deserializer"] = OrderDeserializer::class.java
     return KafkaConsumer<String, Order>(props)

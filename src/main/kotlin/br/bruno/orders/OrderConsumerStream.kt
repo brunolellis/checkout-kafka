@@ -8,25 +8,35 @@ import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.kstream.KStream
 import org.apache.kafka.streams.kstream.Produced
+import org.slf4j.LoggerFactory
 import java.util.*
 
 fun main() {
-    val wrappedSerDe = Serdes.WrapperSerde(OrderSerializer(), OrderDeserializer())
-    val builder = StreamsBuilder()
+    OrderConsumerStream("localhost:9092").process()
+}
 
-    val ordersStream: KStream<String, Order> = builder
-        .stream<String, Order>("orders", Consumed.with(Serdes.String(), wrappedSerDe))
+class OrderConsumerStream(private val brokers: String) {
 
-    ordersStream.peek {_, order -> println("processing order $order")}
-        .filter { _, order -> order.status == OrderStatus.CONCLUDED }
-        .peek { _, order -> println("sending concluded order: $order") }
-        .to("orders-concluded", Produced.with(Serdes.String(), wrappedSerDe))
+    private val logger = LoggerFactory.getLogger(javaClass)
 
-    val topology = builder.build()
+    fun process() {
+        val wrappedSerDe = Serdes.WrapperSerde(OrderSerializer(), OrderDeserializer())
+        val builder = StreamsBuilder()
 
-    val props = Properties()
-    props["bootstrap.servers"] = "localhost:9092"
-    props["application.id"] = "order-checkout-processor"
-    val streams = KafkaStreams(topology, props)
-    streams.start()
+        val ordersStream: KStream<String, Order> = builder
+            .stream<String, Order>("orders", Consumed.with(Serdes.String(), wrappedSerDe))
+
+        ordersStream.peek {_, order -> logger.info("processing order $order")}
+            .filter { _, order -> order.status == OrderStatus.CONCLUDED }
+            .peek { _, order -> logger.info("sending concluded order: $order") }
+            .to("orders-concluded", Produced.with(Serdes.String(), wrappedSerDe))
+
+        val topology = builder.build()
+
+        val props = Properties()
+        props["bootstrap.servers"] = brokers
+        props["application.id"] = "order-checkout-processor"
+        val streams = KafkaStreams(topology, props)
+        streams.start()
+    }
 }
