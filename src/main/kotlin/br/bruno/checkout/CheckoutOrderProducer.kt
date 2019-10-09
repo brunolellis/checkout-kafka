@@ -1,10 +1,6 @@
 package br.bruno.checkout
 
 import br.bruno.orders.OrderSerializer
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.github.javafaker.Faker
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
@@ -26,7 +22,7 @@ fun main(args: Array<String>) {
 
     val faker = Faker()
 
-    for (i in 1..10) {
+    for (i in 1..5) {
         val order = Order(
             id = UUID.randomUUID(),
             customerId = customer1,
