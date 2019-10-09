@@ -22,7 +22,7 @@ fun main(args: Array<String>) {
 
     val faker = Faker()
 
-    for (i in 1..10) {
+    for (i in 1..1000) {
         val order = Order(
             id = UUID.randomUUID(),
             customerId = customer1,

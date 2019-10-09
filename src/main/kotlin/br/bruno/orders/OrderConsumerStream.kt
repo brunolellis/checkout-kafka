@@ -26,7 +26,12 @@ class OrderConsumerStream(private val brokers: String) {
         val ordersStream: KStream<String, Order> = builder
             .stream<String, Order>("orders", Consumed.with(Serdes.String(), wrappedSerDe))
 
-        ordersStream.peek {_, order -> logger.info("processing order $order")}
+        ordersStream.peek {_, order ->
+                val now = System.currentTimeMillis()
+                var createdAt = order.createdAt.toEpochMilli()
+
+                logger.info("order ${order.id} consumed in ${now - createdAt} ms")
+            }
             .filter { _, order -> order.status == OrderStatus.CONCLUDED }
             .peek { _, order -> logger.info("sending concluded order: $order") }
             .to("orders-concluded", Produced.with(Serdes.String(), wrappedSerDe))
