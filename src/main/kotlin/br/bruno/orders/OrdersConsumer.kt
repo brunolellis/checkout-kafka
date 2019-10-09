@@ -22,12 +22,6 @@ import java.util.*
 fun main(args: Array<String>) {
     println("placed orders")
 
-    val jsonMapper = ObjectMapper().apply {
-        registerModule(JavaTimeModule())
-        disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        registerKotlinModule()
-    }
-
     val brokers = "localhost:9092"
     val consumer = createConsumer(brokers)
     consumer.subscribe(listOf("orders"))
@@ -37,25 +31,24 @@ fun main(args: Array<String>) {
     while (true) {
         val records = consumer.poll(Duration.ofSeconds(1))
         records.iterator().forEach {
-            val json = it.value()
-            println("processing order $json")
-            val order = jsonMapper.readValue(json, Order::class.java)
+            val order = it.value()
+            println("processing order $order")
 
             if (order.status == OrderStatus.CONCLUDED) {
-                println("sending concluded order: $json")
-                val futureResult = concludedOrdersProducer.send(ProducerRecord("orders-concluded", json))
+                println("sending concluded order: $order")
+                val futureResult = concludedOrdersProducer.send(ProducerRecord("orders-concluded", order))
                 futureResult.get()
             }
         }
     }
 }
 
-private fun createConsumer(brokers: String): Consumer<String, String> {
+private fun createConsumer(brokers: String): Consumer<String, Order> {
     val props = Properties()
     props["bootstrap.servers"] = brokers
     props["group.id"] = "order-processor-1" // CONSUMER GROUP! up to 4 in parallel (see --partitions topic)
     props["key.deserializer"] = StringDeserializer::class.java
-    props["value.deserializer"] = StringDeserializer::class.java
-    return KafkaConsumer<String, String>(props)
+    props["value.deserializer"] = OrderDeserializer::class.java
+    return KafkaConsumer<String, Order>(props)
 }
 

@@ -1,5 +1,6 @@
 package br.bruno.checkout
 
+import br.bruno.orders.OrderSerializer
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -16,12 +17,6 @@ import java.util.*
 
 fun main(args: Array<String>) {
     println("checkout")
-
-    val jsonMapper = ObjectMapper().apply {
-        registerModule(JavaTimeModule())
-        disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        registerKotlinModule()
-    }
 
     val producer = createProducer("localhost:9092")
 
@@ -42,22 +37,20 @@ fun main(args: Array<String>) {
             deliveryFee = faker.number().randomDouble(0, 0, 10),
             credits = faker.number().randomDouble(2, 0, 20)
         )
-        val orderJson = jsonMapper.writeValueAsString(order)
 
-        val result = placeOrder(producer, orderJson)
+        val result = placeOrder(producer, order)
         println("$i) order placed $result")
 
         if (order.status == OrderStatus.CONFIRMED) {
             val orderConcluded = order.copy(status = OrderStatus.CONCLUDED)
-            val concludedJson = jsonMapper.writeValueAsString(orderConcluded)
-            placeOrder(producer, concludedJson)
+            placeOrder(producer, orderConcluded)
         }
     }
 }
 
-private fun placeOrder(producer: Producer<String, String>, orderJson: String): RecordMetadata {
-    println("placing order: $orderJson")
-    val futureResult = producer.send(ProducerRecord("orders", orderJson))
+private fun placeOrder(producer: Producer<String, Order>, order: Order): RecordMetadata {
+    println("placing order: $order")
+    val futureResult = producer.send(ProducerRecord("orders", order))
     return futureResult.get()
 }
 
@@ -66,12 +59,12 @@ private fun randomOrderStatus(): OrderStatus {
     return values.get(Random().nextInt(values.size));
 }
 
-fun createProducer(brokers: String): Producer<String, String> {
+fun createProducer(brokers: String): Producer<String, Order> {
     val props = Properties()
     props["bootstrap.servers"] = brokers
     props["key.serializer"] = StringSerializer::class.java
-    props["value.serializer"] = StringSerializer::class.java
-    return KafkaProducer<String, String>(props)
+    props["value.serializer"] = OrderSerializer::class.java
+    return KafkaProducer<String, Order>(props)
 }
 
 data class Order(
