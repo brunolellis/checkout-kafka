@@ -28,7 +28,7 @@ class OrderConsumerStream(private val brokers: String) {
 
         ordersStream.peek {_, order ->
                 val now = System.currentTimeMillis()
-                var createdAt = order.createdAt.toEpochMilli()
+                val createdAt = order.createdAt.toEpochMilli()
 
                 logger.info("order ${order.id} consumed in ${now - createdAt} ms")
             }
@@ -36,12 +36,13 @@ class OrderConsumerStream(private val brokers: String) {
             .peek { _, order -> logger.info("sending concluded order: $order") }
             .to("orders-concluded", Produced.with(Serdes.String(), wrappedSerDe))
 
-        val topology = builder.build()
-
         val props = Properties()
         props["bootstrap.servers"] = brokers
         props["application.id"] = "order-checkout-processor"
-        val streams = KafkaStreams(topology, props)
+        val streams = KafkaStreams(builder.build(), props)
         streams.start()
+
+        // Add shutdown hook to respond to SIGTERM and gracefully close Kafka Streams
+        Runtime.getRuntime().addShutdownHook(Thread(streams::close));
     }
 }
