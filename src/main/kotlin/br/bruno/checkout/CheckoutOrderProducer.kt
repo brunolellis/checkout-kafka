@@ -22,16 +22,16 @@ fun main(args: Array<String>) {
 
     val faker = Faker()
 
-    for (i in 1..10) {
+    for (i in 1..1001) {
         val order = Order(
             id = UUID.randomUUID(),
             customerId = customer1,
             createdAt = Instant.now(),
-            status = randomOrderStatus(),
+            status = OrderStatus.CONCLUDED, //randomOrderStatus(),
             campaignId = campaignId,
             totalValue = faker.number().randomDouble(2, 40, 80),
             deliveryFee = faker.number().randomDouble(0, 0, 10),
-            credits = faker.number().randomDouble(2, 0, 20)
+            credits = 1.0 // faker.number().randomDouble(2, 0, 20)
         )
 
         val result = placeOrder(producer, order)
